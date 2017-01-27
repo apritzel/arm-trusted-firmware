@@ -49,16 +49,16 @@ int sunxi_setup_clocks(uint16_t socid)
 	if ((reg & 0x0fffffff) != 0x1010) {		/* if not at 816 MHz: */
 		/* switch CPU to 24 MHz source for changing PLL1 */
 		mmio_write_32(CCMU_CPUX_AXI_CFG_REG,  0x00010000);
-		udelay(1);
+		udelay(10);
 
 		/* Set to 816 MHz */
 		mmio_write_32(CCMU_PLL_CPUX_CTRL_REG, 0x80001010);
-		udelay(1);
+		udelay(10);
 	}
 
 	/* switch CPU to PLL1 source, AXI = CPU/3, APB = CPU/4 */
 	mmio_write_32(CCMU_CPUX_AXI_CFG_REG,  0x00020302);
-	udelay(1);
+	udelay(10);
 
 	} else {
 		NOTICE("PLL_CPUX: %x\n", reg);
