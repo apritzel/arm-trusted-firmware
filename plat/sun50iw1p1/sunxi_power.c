@@ -35,10 +35,6 @@
 #include "sunxi_def.h"
 #include "sunxi_private.h"
 
-#define R_PRCM_BASE	0x1f01400ULL
-#define R_TWI_BASE	0x1f02400ULL
-#define R_PIO_BASE	0x1f02c00ULL
-
 #define RSB_BASE	0x1f03400ULL
 #define RSB_CTRL	0x00
 #define RSB_CCR		0x04

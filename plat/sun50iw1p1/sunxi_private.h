@@ -72,6 +72,9 @@ int sunxi_pmic_setup(void);
 int sunxi_pmic_read(uint8_t address);
 int sunxi_pmic_write(uint8_t address, uint8_t value);
 
+/* Declarations for sunxi_ext_devices.c */
+void sunxi_setup_ext_devices_a64(void);
+
 void udelay(unsigned int delay);
 int sunxi_setup_clocks(uint16_t socid);
 
