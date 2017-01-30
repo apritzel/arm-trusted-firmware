@@ -35,10 +35,6 @@
 #include "sunxi_def.h"
 #include "sunxi_private.h"
 
-#define R_PRCM_BASE	0x1f01400ULL
-#define R_TWI_BASE	0x1f02400ULL
-#define R_PIO_BASE	0x1f02c00ULL
-
 #define RSB_BASE	0x1f03400ULL
 #define RSB_CTRL	0x00
 #define RSB_CCR		0x04
@@ -236,22 +232,25 @@ static int pmic_setup(void)
 	}
 
 	ret = sunxi_pmic_read(0x12);
-	if ((ret & 0x3f) != 0x01) {
+	if ((ret & 0x37) != 0x01) {
 		NOTICE("PMIC: Output power control 2 is an unexpected 0x%x\n",
 		       ret);
 		return -3;
 	}
 
-	if ((ret & 0xc1) != 0xc1) {
-		/* Enable DC1SW to power PHY and DLDO4 for WiFi */
-		ret = sunxi_pmic_write(0x12, ret | 0xc0);
+	if ((ret & 0xc9) != 0xc9) {
+		/* Enable DC1SW to power PHY, DLDO4 for WiFi and DLDO1 for HDMI */
+		ret = sunxi_pmic_write(0x12, ret | 0xc8);
 		if (ret < 0) {
-			NOTICE("PMIC: error %d enabling DC1SW/DLDO4\n", ret);
+			NOTICE("PMIC: error %d enabling DC1SW/DLDO4/DLDO1\n", ret);
 			return -4;
 		}
 	}
 
 	sunxi_pmic_write(0x24, 0xb3);	/* DCDC5 = DDR RAM voltage = 1.5V */
+ 
+	sunxi_pmic_write(0x15, 0x1a);	/* DLDO1 = VCC3V3_HDMI voltage = 3.3V */
+	
 
 	return 0;
 }

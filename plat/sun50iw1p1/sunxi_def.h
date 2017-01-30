@@ -37,6 +37,10 @@
 #define GICD_BASE			0x01c81000
 #define GICC_BASE			0x01c82000
 
+#define R_PRCM_BASE			0x1f01400
+#define R_TWI_BASE			0x1f02400
+#define R_PIO_BASE			0x1f02c00
+
 /* Firmware Image Package */
 #define FIP_IMAGE_NAME			"fip.bin"
 #define SUNXI_PRIMARY_CPU			0x0

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016, Icenowy Zheng <icenowy@aosc.xyz> All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -28,41 +28,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <debug.h>
 #include <mmio.h>
-#include <ccmu.h>
+#include "sunxi_def.h"
 #include "sunxi_private.h"
 
-int sunxi_setup_clocks(uint16_t socid)
+void sunxi_setup_ext_devices_a64(void)
 {
 	uint32_t reg;
 
-	/* Avoid reprogramming PERIPH0 if not necessary */
-	reg = mmio_read_32(CCMU_PLL_PERIPH0_CTRL_REG);
-	if ((reg & 0x0fffffff) != 0x41811)		/* is not at 600 MHz? */
-		mmio_write_32(CCMU_PLL_PERIPH0_CTRL_REG, 0x80041811);
+	/* switch pin PL2,4,6 to GPIO OUT */
+	reg = mmio_read_32(R_PIO_BASE + 0x0);
+	mmio_write_32(R_PIO_BASE + 0x0, (reg & ~0xf0f0f00) | 0x1010100);
 
-	/* Check initial CPU frequency: */
-	reg = mmio_read_32(CCMU_PLL_CPUX_CTRL_REG);
+	/* set PL2,4,6 value to 1 */
+	reg = mmio_read_32(R_PIO_BASE + 0x10);
+	mmio_write_32(R_PIO_BASE + 0x10, (reg & ~0x54) | 0x54);
 
-	if ((reg & 0x0fffffff) != 0x1010) {		/* if not at 816 MHz: */
-		/* switch CPU to 24 MHz source for changing PLL1 */
-		mmio_write_32(CCMU_CPUX_AXI_CFG_REG,  0x00010000);
-		udelay(10);
+	/* level 0 drive strength */
+	reg = mmio_read_32(R_PIO_BASE + 0x14);
+	mmio_write_32(R_PIO_BASE + 0x14, (reg & ~0x3330) | 0x0);
 
-		/* Set to 816 MHz */
-		mmio_write_32(CCMU_PLL_CPUX_CTRL_REG, 0x80001010);
-		udelay(10);
-	}
-
-	/* switch CPU to PLL1 source, AXI = CPU/3, APB = CPU/4 */
-	mmio_write_32(CCMU_CPUX_AXI_CFG_REG,  0x00020302);
-	udelay(10);
-
-	/* AHB1 = PERIPH0 / (3 * 1) = 200MHz, APB1 = AHB1 / 2 */
-	mmio_write_32(CCMU_AHB1_APB1_CFG_REG, 0x00003180);
-	mmio_write_32(CCMU_APB2_CFG_GREG,     0x01000000); /* APB2 =>  24 MHz */
-	mmio_write_32(CCMU_AHB2_CFG_GREG,     0x00000001); /* AHB2 => 300 MHz */
-
-	return 0;
+	/* set all ports to pull-disabled */
+	reg = mmio_read_32(R_PIO_BASE + 0x1c);
+	mmio_write_32(R_PIO_BASE + 0x1c, (reg & ~0x3330) | 0x0);
 }
