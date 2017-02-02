@@ -33,36 +33,72 @@
 #include <ccmu.h>
 #include "sunxi_private.h"
 
+#define PLL_CPUX_1008MHZ    0x1410
+#define PLL_CPUX_816MHZ     0x1010
+#define PLL_CPUX_408MHZ     0x1000
+
+
+
+static void mmio_clrsetbits32(uintptr_t addr, uint32_t mask, uint32_t bits)
+{
+	uint32_t regval = mmio_read_32(addr);
+	regval &= ~mask;
+	regval |= bits;
+	mmio_write_32(addr, regval);
+}
+
+
+static void mmio_setbits32(uintptr_t addr, uint32_t bits)
+{
+	uint32_t regval = mmio_read_32(addr);
+	regval |= bits;
+	mmio_write_32(addr, regval);
+}
+
+/* TODO (prt): we should have a timeout and return an error/success... */
+static int pll_wait_until_stable(uintptr_t addr)
+{
+	while ((mmio_read_32(addr) & PLL_STABLE_BIT) != PLL_STABLE_BIT) {
+		/* spin */
+	}
+
+	return 0;
+}
+
 int sunxi_setup_clocks(uint16_t socid)
 {
 	uint32_t reg;
+
+	NOTICE("BL3-1: Reprogramming clocks for a %d MHz\n");
 
 	/* Avoid reprogramming PERIPH0 if not necessary */
 	reg = mmio_read_32(CCMU_PLL_PERIPH0_CTRL_REG);
 	if ((reg & 0x0fffffff) != 0x41811)		/* is not at 600 MHz? */
 		mmio_write_32(CCMU_PLL_PERIPH0_CTRL_REG, 0x80041811);
 
-	/* Check initial CPU frequency: */
-	reg = mmio_read_32(CCMU_PLL_CPUX_CTRL_REG);
+	/* Set up dividers (suitable for the target clock frequency)
+	   and switch CPUX (and thus AXI & APB) to the LOSC24 clock */
+	mmio_write_32(CCMU_CPUX_AXI_CFG_REG, ( CPUX_SRCSEL_OSC24M |
+					       APB_CLKDIV(4) |
+					       AXI_CLKDIV(3) ));
+	udelay(20);
 
-	if (socid == 0x1689) {
-	if ((reg & 0x0fffffff) != 0x1010) {		/* if not at 816 MHz: */
-		/* switch CPU to 24 MHz source for changing PLL1 */
-		mmio_write_32(CCMU_CPUX_AXI_CFG_REG,  0x00010000);
-		udelay(1);
+	/* Set to 816MHz, but don't enable yet. */
+	mmio_write_32(CCMU_PLL_CPUX_CTRL_REG, PLL_CPUX_816MHZ);
 
-		/* Set to 816 MHz */
-		mmio_write_32(CCMU_PLL_CPUX_CTRL_REG, 0x80001010);
-		udelay(1);
-	}
+	/* Enable PLL_CPUX again */
+	mmio_setbits32(CCMU_PLL_CPUX_CTRL_REG, PLL_ENABLE_BIT);
+	/* Wait until the PLL_CPUX becomes stable */
+	pll_wait_until_stable(CCMU_PLL_CPUX_CTRL_REG);
 
-	/* switch CPU to PLL1 source, AXI = CPU/3, APB = CPU/4 */
-	mmio_write_32(CCMU_CPUX_AXI_CFG_REG,  0x00020302);
-	udelay(1);
+	/* Wait another 20us, because Allwinner does so... */
+	udelay(20);
 
-	} else {
-		NOTICE("PLL_CPUX: %x\n", reg);
-	}
+	/* Switch AXI clock back to PLL_CPUX, dividers have already been set up */
+	mmio_clrsetbits32(CCMU_CPUX_AXI_CFG_REG, CPUX_SRCSEL_MASK, CPUX_SRCSEL_PLLCPUX);
+
+	/* Wait 1000us, because Allwiner does so... */
+	udelay(1000);
 
 	/* AHB1 = PERIPH0 / (3 * 1) = 200MHz, APB1 = AHB1 / 2 */
 	mmio_write_32(CCMU_AHB1_APB1_CFG_REG, 0x00003180);

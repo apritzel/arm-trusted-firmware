@@ -32,6 +32,7 @@
 #define CCMU_PLL_VE_CTRL_REG              (SUNXI_CCM_BASE + 0x18)
 #define CCMU_PLL_DDR0_CTRL_REG            (SUNXI_CCM_BASE + 0x20)
 #define CCMU_PLL_PERIPH0_CTRL_REG         (SUNXI_CCM_BASE + 0x28)
+
 #define CCMU_PLL_PERIPH1_CTRL_REG         (SUNXI_CCM_BASE + 0x2C)
 #define CCMU_PLL_VIDEO1_CTRL_REG          (SUNXI_CCM_BASE + 0x30)
 #define CCMU_PLL_GPU_CTRL_REG             (SUNXI_CCM_BASE + 0x38)
@@ -40,8 +41,20 @@
 #define CCMU_PLL_DE_CTRL_REG              (SUNXI_CCM_BASE + 0x48)
 #define CCMU_PLL_DDR1_CTRL_REG            (SUNXI_CCM_BASE + 0x4C)
 
+#define   PLL_ENABLE_BIT                  (1 << 31)
+#define   PLL_STABLE_BIT                  (1 << 28)
+
 /* cfg list */
 #define CCMU_CPUX_AXI_CFG_REG             (SUNXI_CCM_BASE + 0x50)
+#define   CPUX_SRCSEL_MASK                (0x3 << 16)
+#define   CPUX_SRCSEL_LOSC                (0x0 << 16)
+#define   CPUX_SRCSEL_OSC24M              (0x1 << 16)
+#define   CPUX_SRCSEL_PLLCPUX             (0x2 << 16)
+#define   AXI_CLKDIV_MASK                 (0x3 << 8)
+#define   AXI_CLKDIV(n)                   ((n-1) << 8)
+#define   APB_CLKDIV_MASK                 (0x3 << 0)
+#define   APB_CLKDIV(n)                   ((n-1) << 0)
+
 #define CCMU_AHB1_APB1_CFG_REG            (SUNXI_CCM_BASE + 0x54)
 #define CCMU_APB2_CFG_GREG                (SUNXI_CCM_BASE + 0x58)
 #define CCMU_AHB2_CFG_GREG                (SUNXI_CCM_BASE + 0x5C)
@@ -76,6 +89,9 @@
 #define CCMU_BUS_SOFT_RST_REG2            (SUNXI_CCM_BASE + 0x2C8)
 #define CCMU_BUS_SOFT_RST_REG3            (SUNXI_CCM_BASE + 0x2D0)
 #define CCMU_BUS_SOFT_RST_REG4            (SUNXI_CCM_BASE + 0x2D8)
+
+#define CCMU_PLL_LOCK_CTRL_REG            (SUNXI_CCM_BASE + 0x320)
+#define LOCK_EN_PLL_CPUX       (1<<0)
 
 #endif
 
