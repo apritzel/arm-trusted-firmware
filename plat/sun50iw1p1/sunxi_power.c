@@ -251,7 +251,12 @@ static int pmic_setup(void)
 		}
 	}
 
-	sunxi_pmic_write(0x24, 0xb3);	/* DCDC5 = DDR RAM voltage = 1.5V */
+	ret = sunxi_pmic_read(0x10);
+	sunxi_pmic_write(0x10, ret | (1 << 3));
+
+	sunxi_pmic_write(0x23, 0x46);   /* DCDC4 = ETH PHY = 1.2V */
+	sunxi_pmic_write(0x24, 0x2c);   /* DCDC5 = DDR3L voltage = 1.36V */
+	// sunxi_pmic_write(0x24, 0xb3);	/* DCDC5 = DDR RAM voltage = 1.5V */
 
 	return 0;
 }
