@@ -229,6 +229,8 @@ void bl31_early_platform_setup(bl31_params_t *from_bl2,
 
 }
 
+const char *get_dt_name(void);
+
 /*******************************************************************************
  * Initialize the gic, configure the CLCD and zero out variables needed by the
  * secondaries to boot up correctly.
@@ -236,6 +238,7 @@ void bl31_early_platform_setup(bl31_params_t *from_bl2,
 void bl31_platform_setup(void)
 {
 	uint16_t socid;
+	const char *dt_name;
 
 	/* Initialize the gic cpu and distributor interfaces */
 	arm_gic_init(GICC_BASE, GICD_BASE, 0, NULL, 0);
@@ -243,12 +246,19 @@ void bl31_platform_setup(void)
 
 	socid = sunxi_get_socid();
 
+	dt_name = get_dt_name();
+
+	if (dt_name)
+		NOTICE("DT: \"%s\"\n", dt_name);
+	else
+		NOTICE("No DT name found, cannot identify board.\n");
+
 	/* Detect if this SoC is a multi-cluster one. */
 	plat_setup_topology();
 
 	switch (socid) {
 	case 0x1689:
-		sunxi_pmic_setup();
+		sunxi_pmic_setup(dt_name);
 		break;
 	case 0x1718:
 		break;

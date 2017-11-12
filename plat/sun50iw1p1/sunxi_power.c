@@ -31,6 +31,7 @@
 #include <debug.h>
 #include <plat_config.h>
 #include <mmio.h>
+#include <string.h>
 #include <sys/errno.h>
 #include "sunxi_def.h"
 #include "sunxi_private.h"
@@ -213,7 +214,7 @@ static int pmic_init(uint16_t hw_addr, uint8_t rt_addr)
 }
 
 /* Setup the PMIC: DCDC1 to 3.3V, enable DC1SW and DLDO4 */
-static int pmic_setup(void)
+static int pmic_setup(const char *dt_name)
 {
 	int ret;
 
@@ -258,10 +259,12 @@ static int pmic_setup(void)
 	 * changes. This should be further confined once we are able to
 	 * reliably detect a Pine64 board.
 	 */
-	ret = sunxi_pmic_read(0x24);	/* read DCDC5 register */
-	if ((ret & 0x7f) == 0x26) {	/* check for 1.24V value */
-		NOTICE("PMIC: fixing DRAM voltage from 1.24V to 1.36V\n");
-		sunxi_pmic_write(0x24, 0x2c);
+	if (!strcmp(dt_name, "sun50i-a64-pine64-plus")) {
+		ret = sunxi_pmic_read(0x24);	/* read DCDC5 register */
+		if ((ret & 0x7f) == 0x26) {	/* check for 1.24V value */
+			NOTICE("PMIC: fixing DRAM voltage from 1.24V to 1.36V\n");
+			sunxi_pmic_write(0x24, 0x2c);
+		}
 	}
  
 	sunxi_pmic_write(0x15, 0x1a);	/* DLDO1 = VCC3V3_HDMI voltage = 3.3V */
@@ -272,7 +275,7 @@ static int pmic_setup(void)
 /*
  * Program the AXP803 via the RSB bus.
  */
-int sunxi_pmic_setup(void)
+int sunxi_pmic_setup(const char *dt_name)
 {
 	int ret;
 
@@ -292,7 +295,7 @@ int sunxi_pmic_setup(void)
 		}
 	}
 
-	ret = pmic_setup();
+	ret = pmic_setup(dt_name);
 	if (!ret)
 		NOTICE("PMIC: setup successful\n");
 	else
