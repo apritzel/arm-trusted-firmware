@@ -153,3 +153,36 @@ uint16_t sunxi_get_socid(void)
 	mmio_write_32(0x01c00024, reg & ~(1 << 15));
 	return reg >> 16;
 }
+
+struct spl_boot_file_head {
+	uint32_t  jump_instruction;
+	uint32_t  magic[2];
+	uint32_t  check_sum;
+	uint32_t  length;
+	uint8_t   spl_signature[4];
+	uint32_t  fel_script_address;
+	uint32_t  fel_uEnv_length;
+	uint32_t  offset_dt_name;
+	uint32_t  reserved1;
+	uint32_t  boot_media;
+	uint32_t  string_pool[13];
+};
+
+const char *get_dt_name(void)
+{
+	struct spl_boot_file_head *spl_head = (void *)0x10000;
+
+	if (spl_head->magic[0] != 0x4e4f4765 ||
+	    spl_head->magic[1] != 0x3054422E) {
+		NOTICE("magic0: 0x%x, magic1: 0x%x\n",
+				spl_head->magic[0], spl_head->magic[1]);
+
+		if (spl_head->magic[1] != 0x4c45462e)
+			return NULL;
+	}
+
+	if (spl_head->spl_signature[3] < 2)
+		return NULL;
+
+	return (char *)spl_head + spl_head->offset_dt_name;
+}

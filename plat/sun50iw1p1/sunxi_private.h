@@ -68,7 +68,7 @@ void sunxi_io_setup(void);
 void sunxi_security_setup(void);
 
 /* Declarations for sunxi_power.c */
-int sunxi_pmic_setup(void);
+int sunxi_pmic_setup(const char *dt_name);
 int sunxi_pmic_read(uint8_t address);
 int sunxi_pmic_write(uint8_t address, uint8_t value);
 
