@@ -216,7 +216,7 @@ static int pmic_init(uint16_t hw_addr, uint8_t rt_addr)
 /* Setup the PMIC: DCDC1 to 3.3V, enable DC1SW and DLDO4 */
 static int pmic_setup(const char *dt_name)
 {
-	int ret;
+	int ret, ram_voltage = 0;
 
 	ret = sunxi_pmic_read(0x20);
 	if (ret != 0x0e && ret != 0x11) {
@@ -256,14 +256,27 @@ static int pmic_setup(const char *dt_name)
 	 * On the Pine64 the AXP is wired wrongly: to reset DCDC5 to 1.24V.
 	 * However the DDR3L chips require 1.36V instead. Fix this up. Other
 	 * boards hopefully do the right thing here and don't require any
-	 * changes. This should be further confined once we are able to
-	 * reliably detect a Pine64 board.
+	 * changes.
 	 */
-	if (!strcmp(dt_name, "sun50i-a64-pine64-plus")) {
+	if (!strcmp(dt_name, "sun50i-a64-pine64-plus"))
+		ram_voltage = 0x2c;
+
+	/* LPDDR3 on SoPine runs with 1.2V. */
+	if (!strcmp(dt_name, "sun50i-a64-sopine-baseboard"))
+		ram_voltage = 0x24;
+
+	if (ram_voltage > 0) {
 		ret = sunxi_pmic_read(0x24);	/* read DCDC5 register */
-		if ((ret & 0x7f) == 0x26) {	/* check for 1.24V value */
-			NOTICE("PMIC: fixing DRAM voltage from 1.24V to 1.36V\n");
-			sunxi_pmic_write(0x24, 0x2c);
+		ret &= 0x7f;
+		if (ret != ram_voltage) {	/* check for wrong value */
+			/* constants from linux axp20x-regulator.c */
+			int disp_newv = 114 + (ram_voltage - 0x21) * 2;
+			int disp_oldv = 114 + (ret - 0x21) * 2;
+
+			NOTICE("PMIC: fixing DRAM voltage from %d.%dV to %d.%dV\n",
+				disp_oldv / 100, disp_oldv % 100,
+				disp_newv / 100, disp_newv % 100);
+			sunxi_pmic_write(0x24, ram_voltage);
 		}
 	}
 
