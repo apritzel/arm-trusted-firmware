@@ -285,6 +285,19 @@ static int pmic_setup(const char *dt_name)
 
 		INFO("PMIC: enabled TERES I display power\n");
 	}
+
+	/* The same thing, but for TERES I */
+	if (!strcmp(dt_name, "sun50i-a64-teres-i")) {
+		sunxi_pmic_write(0x16, 0x12); /* DLDO2 = VCC-EDP-2V5 = 2.5V */
+		ret = sunxi_pmic_read(0x12);
+		sunxi_pmic_write(0x12, ret | 0x10);
+
+		sunxi_pmic_write(0x17, 0x05); /* DLDO3 = VCC-EDP-1V2 = 1.2V */
+		ret = sunxi_pmic_read(0x12);
+		sunxi_pmic_write(0x12, ret | 0x20);
+
+		NOTICE("PMIC: enabled TERES I display power\n");
+	}
  
 	sunxi_pmic_write(0x15, 0x1a);	/* DLDO1 = VCC3V3_HDMI voltage = 3.3V */
 
