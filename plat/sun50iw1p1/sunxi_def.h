@@ -49,7 +49,7 @@
  * sunxi memory map related constants
  ******************************************************************************/
 
-#define SUNXI_MAX_DRAM_SIZE           (2ull<<30)     /*2G*/
+#define SUNXI_MAX_DRAM_SIZE           (3ull<<30)     /*3G*/
 
 /*
  * This puts ATF into SRAM A2. The first 16KB (@0x40000) are used by the
