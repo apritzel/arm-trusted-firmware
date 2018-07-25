@@ -230,6 +230,17 @@ static int pmic_setup(const char *dt_name)
 	/* Enable DC1SW to power PHY, DLDO4 for WiFi and DLDO1 for HDMI */
 	ret = sunxi_pmic_read(0x12);
 	if ((ret & 0xc8) != 0xc8) {
+		/* Enable LCD DVDD first. Otherwise if LCD connected we'll end up
+		   with AXP overheating. Linux can disable it later if it's not used
+		 */
+		if (!strcmp(dt_name, "sun50i-a64-pine64-plus") ||
+		    !strcmp(dt_name, "sun50i-a64-sopine-baseboard")) {
+			sunxi_pmic_write(0x16, 0x1a); /* DLDO2 = VCC-MIPI = 0x0b for 1.8V, 0x1a for 3.3v */
+			ret |= 0x10;
+			sunxi_pmic_write(0x12, ret);
+		}
+		udelay(20000); /* wait 20ms */
+
 		ret = sunxi_pmic_write(0x12, ret | 0xc8);
 		if (ret < 0) {
 			NOTICE("PMIC: error %d enabling DC1SW/DLDO4/DLDO1\n",
