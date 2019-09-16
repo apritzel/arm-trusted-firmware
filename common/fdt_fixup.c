@@ -26,7 +26,8 @@
 
 static int append_psci_compatible(void *fdt, int offs, const char *str)
 {
-	return fdt_appendprop(fdt, offs, "compatible", str, strlen(str) + 1);
+	return fdt_appendprop(fdt, offs, "compatible", str,
+			      (int)strlen(str) + 1);
 }
 
 #ifdef __aarch64__
@@ -49,11 +50,12 @@ static int append_psci_compatible(void *fdt, int offs, const char *str)
  * in this case. This function will not touch the /cpus enable methods, use
  * dt_add_psci_cpu_enable_methods() for that.
  *
- * Return: 0 on success, -1 otherwise.
+ * Return: 0 on success, a negative libfdt error value otherwise
  ******************************************************************************/
 int dt_add_psci_node(void *fdt)
 {
 	int offs;
+	int ret;
 
 	if (fdt_path_offset(fdt, "/psci") >= 0) {
 		WARN("PSCI Device Tree node already exists!\n");
@@ -62,24 +64,32 @@ int dt_add_psci_node(void *fdt)
 
 	offs = fdt_path_offset(fdt, "/");
 	if (offs < 0)
-		return -1;
+		return offs;
 	offs = fdt_add_subnode(fdt, offs, "psci");
 	if (offs < 0)
+		return offs;
+	ret = append_psci_compatible(fdt, offs, "arm,psci-1.0");
+	if (ret != 0)
+		return ret;
+	ret = append_psci_compatible(fdt, offs, "arm,psci-0.2");
+	if (ret != 0)
+		return ret;
+	ret = append_psci_compatible(fdt, offs, "arm,psci");
+	if (ret != 0)
+		return ret;
+	ret = fdt_setprop_string(fdt, offs, "method", "smc");
+	if (ret != 0)
+		return ret;
+	ret = fdt_setprop_u32(fdt, offs, "cpu_suspend", PSCI_CPU_SUSPEND_FNID);
+	if (ret != 0)
+		return ret;
+	ret = fdt_setprop_u32(fdt, offs, "cpu_off", PSCI_CPU_OFF);
+	if (ret != 0)
+		return ret;
+	ret = fdt_setprop_u32(fdt, offs, "cpu_on", PSCI_CPU_ON_FNID);
+	if (ret != 0)
 		return -1;
-	if (append_psci_compatible(fdt, offs, "arm,psci-1.0"))
-		return -1;
-	if (append_psci_compatible(fdt, offs, "arm,psci-0.2"))
-		return -1;
-	if (append_psci_compatible(fdt, offs, "arm,psci"))
-		return -1;
-	if (fdt_setprop_string(fdt, offs, "method", "smc"))
-		return -1;
-	if (fdt_setprop_u32(fdt, offs, "cpu_suspend", PSCI_CPU_SUSPEND_FNID))
-		return -1;
-	if (fdt_setprop_u32(fdt, offs, "cpu_off", PSCI_CPU_OFF))
-		return -1;
-	if (fdt_setprop_u32(fdt, offs, "cpu_on", PSCI_CPU_ON_FNID))
-		return -1;
+
 	return 0;
 }
 
@@ -90,7 +100,7 @@ int dt_add_psci_node(void *fdt)
  * or none have to be patched in the first place.
  * Returns 1 if *one* such subnode has been found and successfully changed
  * to "psci".
- * Returns -1 on error.
+ * Returns negative values on error.
  *
  * Call in a loop until it returns 0. Recalculate the node offset after
  * it has returned 1.
@@ -104,20 +114,23 @@ static int dt_update_one_cpu_node(void *fdt, int offset)
 	     offs = fdt_next_subnode(fdt, offs)) {
 		const char *prop;
 		int len;
+		int ret;
 
 		prop = fdt_getprop(fdt, offs, "device_type", &len);
-		if (!prop)
+		if (prop == NULL)
 			continue;
-		if (memcmp(prop, "cpu", 4) != 0 || len != 4)
+		if ((strcmp(prop, "cpu") != 0) || (len != 4))
 			continue;
 
 		/* Ignore any nodes which already use "psci". */
 		prop = fdt_getprop(fdt, offs, "enable-method", &len);
-		if (prop && memcmp(prop, "psci", 5) == 0 && len == 5)
+		if ((prop != NULL) &&
+		    (strcmp(prop, "psci") == 0) && (len == 5))
 			continue;
 
-		if (fdt_setprop_string(fdt, offs, "enable-method", "psci"))
-			return -1;
+		ret = fdt_setprop_string(fdt, offs, "enable-method", "psci");
+		if (ret < 0)
+			return ret;
 		/*
 		 * Subnode found and patched.
 		 * Restart to accommodate potentially changed offsets.
@@ -139,7 +152,7 @@ static int dt_update_one_cpu_node(void *fdt, int offset)
  * the enable-method to PSCI. This will add the enable-method properties, if
  * required, or will change existing properties to read "psci".
  *
- * Return: 0 on success, or a negative error value otherwise.
+ * Return: 0 on success, or a negative libfdt error value otherwise.
  ******************************************************************************/
 
 int dt_add_psci_cpu_enable_methods(void *fdt)
@@ -157,7 +170,8 @@ int dt_add_psci_cpu_enable_methods(void *fdt)
 	return ret;
 }
 
-#define HIGH_BITS(x) ((sizeof(x) > 4) ? ((x) >> 32) : (typeof(x))0)
+/* Avoids a ">> 32", which the compiler does not like for AArch32. */
+#define HIGH_BITS(x) (((x) >> 16) >> 16)
 
 /*******************************************************************************
  * fdt_add_reserved_memory() - reserve (secure) memory regions in DT
@@ -183,22 +197,35 @@ int fdt_add_reserved_memory(void *dtb, const char *node_name,
 {
 	int offs = fdt_path_offset(dtb, "/reserved-memory");
 	uint32_t addresses[3];
+	int ret;
 
 	if (offs < 0) {			/* create if not existing yet */
 		offs = fdt_add_subnode(dtb, 0, "reserved-memory");
 		if (offs < 0)
 			return offs;
-		fdt_setprop_u32(dtb, offs, "#address-cells", 2);
-		fdt_setprop_u32(dtb, offs, "#size-cells", 1);
-		fdt_setprop(dtb, offs, "ranges", NULL, 0);
+		ret = fdt_setprop_u32(dtb, offs, "#address-cells", 2);
+		if (ret != 0)
+			return ret;
+		ret = fdt_setprop_u32(dtb, offs, "#size-cells", 1);
+		if (ret != 0)
+			return ret;
+		ret = fdt_setprop(dtb, offs, "ranges", NULL, 0);
+		if (ret != 0)
+			return ret;
 	}
 
 	addresses[0] = cpu_to_fdt32(HIGH_BITS(base));
-	addresses[1] = cpu_to_fdt32(base & 0xffffffff);
-	addresses[2] = cpu_to_fdt32(size & 0xffffffff);
+	addresses[1] = cpu_to_fdt32((uint32_t)base);
+	addresses[2] = cpu_to_fdt32((uint32_t)size);
 	offs = fdt_add_subnode(dtb, offs, node_name);
-	fdt_setprop(dtb, offs, "no-map", NULL, 0);
-	fdt_setprop(dtb, offs, "reg", addresses, 12);
+	if (offs < 0)
+		return offs;
+	ret = fdt_setprop(dtb, offs, "no-map", NULL, 0);
+	if (ret != 0)
+		return ret;
+	ret = fdt_setprop(dtb, offs, "reg", addresses, 12);
+	if (ret != 0)
+		return ret;
 
 	return 0;
 }
