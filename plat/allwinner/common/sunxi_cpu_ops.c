@@ -69,6 +69,7 @@ void sunxi_cpu_off(u_register_t mpidr)
 	/*
 	 * If we are supposed to turn ourself off, tell the arisc SCP
 	 * to do that work for us, if that is available.
+	 * The H616 has to use another solution.
 	 */
 	sunxi_cpu_power_off_self();
 }
