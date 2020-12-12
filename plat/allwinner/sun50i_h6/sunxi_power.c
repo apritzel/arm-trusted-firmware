@@ -5,12 +5,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <assert.h>
 #include <errno.h>
 
 #include <common/debug.h>
 #include <drivers/allwinner/axp.h>
 #include <drivers/allwinner/sunxi_rsb.h>
 
+#include <core_off_arisc.h>
 #include <sunxi_def.h>
 #include <sunxi_mmap.h>
 #include <sunxi_private.h>
@@ -101,4 +103,21 @@ void sunxi_power_down(void)
 	default:
 		break;
 	}
+}
+
+void sunxi_cpu_power_off_self(void)
+{
+	u_register_t mpidr = read_mpidr();
+	unsigned int core    = MPIDR_AFFLVL0_VAL(mpidr);
+
+	/* Simplifies assembly, this SoC is single cluster anyway. */
+	assert(MPIDR_AFFLVL1_VAL(mpidr) == 0);
+
+	/*
+	 * If we are supposed to turn ourself off, tell the arisc SCP
+	 * to do that work for us. The code expects the core mask to be
+	 * patched into the first instruction.
+	 */
+	sunxi_execute_arisc_code(arisc_core_off, sizeof(arisc_core_off),
+				 BIT_32(core));
 }

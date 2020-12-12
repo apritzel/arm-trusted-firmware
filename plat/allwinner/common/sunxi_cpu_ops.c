@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
 #include <platform_def.h>
 
 #include <arch_helpers.h>
@@ -15,7 +13,6 @@
 #include <lib/utils_def.h>
 #include <plat/common/platform.h>
 
-#include <core_off_arisc.h>
 #include <sunxi_cpucfg.h>
 #include <sunxi_mmap.h>
 #include <sunxi_private.h>
@@ -69,16 +66,11 @@ void sunxi_cpu_off(u_register_t mpidr)
 		return;
 	}
 
-	/* Simplifies assembly, all SoCs so far are single cluster anyway. */
-	assert(cluster == 0);
-
 	/*
 	 * If we are supposed to turn ourself off, tell the arisc SCP
-	 * to do that work for us. The code expects the core mask to be
-	 * patched into the first instruction.
+	 * to do that work for us, if that is available.
 	 */
-	sunxi_execute_arisc_code(arisc_core_off, sizeof(arisc_core_off),
-				 BIT_32(core));
+	sunxi_cpu_power_off_self();
 }
 
 void sunxi_cpu_on(u_register_t mpidr)
