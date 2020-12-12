@@ -8,4 +8,8 @@
 include plat/allwinner/common/allwinner-common.mk
 
 BL31_SOURCES		+=	drivers/allwinner/axp/axp805.c		\
-				drivers/mentor/i2c/mi2cv.c
+				drivers/mentor/i2c/mi2cv.c		\
+				drivers/allwinner/sunxi_msgbox.c	\
+				drivers/arm/css/scpi/css_scpi.c
+
+$(eval $(call add_define,SUNXI_HAVE_ARISC))

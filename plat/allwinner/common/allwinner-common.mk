@@ -20,8 +20,6 @@ PLAT_BL_COMMON_SOURCES	:=	drivers/ti/uart/${ARCH}/16550_console.S	\
 				${AW_PLAT}/common/sunxi_common.c
 
 BL31_SOURCES		+=	drivers/allwinner/axp/common.c		\
-				drivers/allwinner/sunxi_msgbox.c	\
-				drivers/arm/css/scpi/css_scpi.c		\
 				${GICV2_SOURCES}			\
 				drivers/delay_timer/delay_timer.c	\
 				drivers/delay_timer/generic_delay_timer.c \
