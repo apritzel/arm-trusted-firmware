@@ -13,6 +13,8 @@
 #include <arch.h>
 #include <arch_helpers.h>
 #include <common/debug.h>
+#include <common/fdt_fixup.h>
+#include <common/fdt_wrappers.h>
 #include <drivers/arm/gicv2.h>
 #include <drivers/console.h>
 #include <drivers/generic_delay_timer.h>
@@ -107,6 +109,40 @@ void bl31_plat_arch_setup(void)
 	sunxi_configure_mmu_el3(0);
 }
 
+static void sunxi_prepare_dtb(void *fdt)
+{
+	int ret;
+
+#ifndef SUNXI_RUN_IN_DRAM
+	return;			/* nothing to do except memory reservation */
+#endif
+
+	if (fdt == NULL || fdt_check_header(fdt) != 0) {
+		return;
+	}
+	ret = fdt_open_into(fdt, fdt, 0x100000);
+	if (ret < 0) {
+		ERROR("Preparing devicetree at %p: error %d\n", fdt, ret);
+		return;
+	}
+
+	/* Reserve memory used by Trusted Firmware. */
+	if (fdt_add_reserved_memory(fdt, "tf-a@40000000", SUNXI_DRAM_BASE,
+				    BL31_LIMIT - SUNXI_DRAM_BASE)) {
+		WARN("Failed to add reserved memory nodes to DT.\n");
+		return;
+	}
+
+	ret = fdt_pack(fdt);
+	if (ret < 0) {
+		ERROR("Failed to pack devicetree at %p: error %d\n",
+		      fdt, ret);
+	} else {
+		clean_dcache_range((uintptr_t)fdt, fdt_blob_size(fdt));
+		INFO("Changed devicetree to reserve BL31 memory.\n");
+	}
+}
+
 void bl31_platform_setup(void)
 {
 	const char *soc_name;
@@ -174,6 +210,8 @@ void bl31_platform_setup(void)
 		mmio_write_32(SUNXI_CCU_BASE + 0x5c, 0x1);
 
 	sunxi_pmic_setup(soc_id, fdt);
+
+	sunxi_prepare_dtb(fdt);
 
 	INFO("BL31: Platform setup done\n");
 }

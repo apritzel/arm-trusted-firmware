@@ -17,6 +17,7 @@ ifeq (${SUNXI_PSCI_USE_SCPI}, 1)
 endif
 
 BL31_SOURCES		+=	drivers/allwinner/axp/axp805.c		\
-				drivers/allwinner/sunxi_rsb.c
+				drivers/allwinner/sunxi_rsb.c		\
+				common/fdt_fixup.c
 
 $(eval $(call add_define,SUNXI_BL31_IN_DRAM))
