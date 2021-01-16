@@ -176,8 +176,6 @@ static int sunxi_validate_power_state(unsigned int power_state,
 	unsigned int power_level = psci_get_pstate_pwrlvl(power_state);
 	unsigned int type = psci_get_pstate_type(power_state);
 
-	assert(req_state != NULL);
-
 	if (power_level > PLAT_MAX_PWR_LVL)
 		return PSCI_E_INVALID_PARAMS;
 
@@ -215,8 +213,6 @@ static int sunxi_validate_ns_entrypoint(uintptr_t ns_entrypoint)
 
 static void sunxi_get_sys_suspend_power_state(psci_power_state_t *req_state)
 {
-	assert(req_state);
-
 	for (unsigned int i = 0; i <= PLAT_MAX_PWR_LVL; ++i)
 		req_state->pwr_domain_state[i] = PLAT_MAX_OFF_STATE;
 }
@@ -235,8 +231,6 @@ static plat_psci_ops_t sunxi_psci_ops = {
 int plat_setup_psci_ops(uintptr_t sec_entrypoint,
 			const plat_psci_ops_t **psci_ops)
 {
-	assert(psci_ops);
-
 	/* Program all CPU entry points. */
 	for (unsigned int cpu = 0; cpu < PLATFORM_CORE_COUNT; ++cpu) {
 		mmio_write_32(SUNXI_CPUCFG_RVBAR_LO_REG(cpu),
