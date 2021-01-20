@@ -20,8 +20,6 @@ PLAT_BL_COMMON_SOURCES	:=	drivers/ti/uart/${ARCH}/16550_console.S	\
 				${AW_PLAT}/common/sunxi_common.c
 
 BL31_SOURCES		+=	drivers/allwinner/axp/common.c		\
-				drivers/allwinner/sunxi_msgbox.c	\
-				drivers/arm/css/scpi/css_scpi.c		\
 				${GICV2_SOURCES}			\
 				drivers/delay_timer/delay_timer.c	\
 				drivers/delay_timer/generic_delay_timer.c \
@@ -30,12 +28,34 @@ BL31_SOURCES		+=	drivers/allwinner/axp/common.c		\
 				plat/common/plat_psci_common.c		\
 				${AW_PLAT}/common/sunxi_bl31_setup.c	\
 				${AW_PLAT}/common/sunxi_cpu_ops.c	\
-				${AW_PLAT}/common/sunxi_native_pm.c	\
 				${AW_PLAT}/common/sunxi_pm.c		\
-				${AW_PLAT}/common/sunxi_scpi_pm.c	\
 				${AW_PLAT}/${PLAT}/sunxi_power.c	\
 				${AW_PLAT}/common/sunxi_security.c	\
 				${AW_PLAT}/common/sunxi_topology.c
+
+# By default support SCPI to the ARISC management processor (autodetected)
+SUNXI_PSCI_USE_SCPI		?=	1
+$(eval $(call add_define,SUNXI_PSCI_USE_SCPI))
+
+# If SCPI is not enabled or the SCP firmware not loaded, use a simpler version
+SUNXI_PSCI_USE_NATIVE		?=	1
+$(eval $(call add_define,SUNXI_PSCI_USE_NATIVE))
+
+ifeq (${SUNXI_PSCI_USE_NATIVE}, 0)
+    ifeq (${SUNXI_PSCI_USE_SCPI}, 0)
+        $(error "must enable at least one of SCPI or NATIVE PSCI ops")
+    endif
+endif
+
+ifeq (${SUNXI_PSCI_USE_SCPI}, 1)
+BL31_SOURCES		+=	drivers/allwinner/sunxi_msgbox.c	\
+				drivers/arm/css/scpi/css_scpi.c		\
+				${AW_PLAT}/common/sunxi_scpi_pm.c
+endif
+
+ifeq (${SUNXI_PSCI_USE_NATIVE}, 1)
+BL31_SOURCES		+=	${AW_PLAT}/common/sunxi_native_pm.c
+endif
 
 # The bootloader is guaranteed to only run on CPU 0 by the boot ROM.
 COLD_BOOT_SINGLE_CPU		:=	1
