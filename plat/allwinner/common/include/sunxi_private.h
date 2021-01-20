@@ -24,7 +24,8 @@ void sunxi_set_gpio_out(char port, int pin, bool level_high);
 int sunxi_init_platform_r_twi(uint16_t socid, bool use_rsb);
 void sunxi_execute_arisc_code(uint32_t *code, size_t size, uint16_t param);
 
-extern const plat_psci_ops_t sunxi_native_psci_ops;
-extern const plat_psci_ops_t sunxi_scpi_psci_ops;
+void sunxi_set_native_psci_ops(const plat_psci_ops_t **psci_ops);
+void sunxi_set_scpi_psci_ops(const plat_psci_ops_t **psci_ops);
+bool is_scpi_available(void);
 
 #endif /* SUNXI_PRIVATE_H */
