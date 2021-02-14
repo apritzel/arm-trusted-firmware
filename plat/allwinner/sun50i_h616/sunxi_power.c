@@ -111,20 +111,12 @@ void sunxi_power_down(void)
 void sunxi_cpu_power_off_self(void)
 {
 	u_register_t mpidr = read_mpidr();
-	unsigned int cluster = MPIDR_AFFLVL1_VAL(mpidr);
-	unsigned int core    = MPIDR_AFFLVL0_VAL(mpidr);
+	unsigned int core  = MPIDR_AFFLVL0_VAL(mpidr);
 
-	/*
-	 * According to the Cortex-A53 TRM the core needs to be in WFI state
-	 * before the reset line can be asserted, and the power be removed.
-	 * This sequence can't be observed if we have only this very core
-	 * to perform it.
-	 * So we do as good as we can, we remove the power, then go into
-	 * WFI (should we survive this).
-	 * The CPU_ON sequence does a proper reset from another core, before
-	 * handing this core back to the caller, so that should be fine.
-	 */
-	mmio_write_32(SUNXI_CPU_POWER_CLAMP_REG(cluster, core), 0xffU);
-	while (1)
-		wfi();
+	/* Enable the CPUIDLE hardware (only really needs to be done once). */
+	mmio_write_32(SUNXI_CPUIDLE_EN_REG, 0x16aa0000);
+	mmio_write_32(SUNXI_CPUIDLE_EN_REG, 0xaa160001);
+
+	/* Trigger power off for this core. */
+	mmio_write_32(SUNXI_CORE_CLOSE_REG, BIT_32(core));
 }
