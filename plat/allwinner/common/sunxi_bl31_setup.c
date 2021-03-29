@@ -113,7 +113,7 @@ static void sunxi_prepare_dtb(void *fdt)
 {
 	int ret;
 
-#ifndef SUNXI_RUN_IN_DRAM
+#ifndef SUNXI_BL31_IN_DRAM
 	return;			/* nothing to do except memory reservation */
 #endif
 
